@@ -1,6 +1,8 @@
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QLineEdit, QWidget, QFileDialog)
 from PySide6.QtCore import Qt
+from ui.menubar import MenuBar
+from ui.toolbar import ToolBar
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -8,26 +10,14 @@ class MainWindow(QMainWindow):
         self.setWindowTitle('Image Processing Studio')
         self.resize(1400,800)
         self.setup_ui()
-
+        self.create_menu()
+        self.create_toolbar()
 
     def setup_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
         main_layout = QVBoxLayout()
         central.setLayout(main_layout)
-
-        button_layout = QHBoxLayout()
-        self.image_button = QPushButton("Open Image")
-        self.image_button.clicked.connect(self.open_image)
-
-        self.video_button = QPushButton("Open Video")
-        self.video_button.clicked.connect(self.open_video)
-        
-        self.save_button = QPushButton("Save Results")
-        button_layout.addWidget(self.image_button)
-        button_layout.addWidget(self.video_button)
-        button_layout.addWidget(self.save_button)
-        main_layout.addLayout(button_layout)
 
         ## Creating image panels
         viewer_layout = QHBoxLayout()
@@ -63,3 +53,14 @@ class MainWindow(QMainWindow):
         
         if (file):
             print(file)
+
+    
+    def create_menu(self):
+        self.menu = MenuBar(self)
+        self.setMenuBar(self.menu)
+
+    def create_toolbar(self):
+        self.toolbar = ToolBar()
+        self.addToolBar(self.toolbar)
+        self.toolbar.open_image.triggered.connect(self.open_image)
+        self.toolbar.open_video.triggered.connect(self.open_video)
