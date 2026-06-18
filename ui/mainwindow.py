@@ -3,6 +3,7 @@ from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout, QHBoxLayou
 from PySide6.QtCore import Qt
 from ui.menubar import MenuBar
 from ui.toolbar import ToolBar
+from ui.sidebar import SideBar
 
 class MainWindow(QMainWindow):
     def __init__(self):
@@ -16,11 +17,11 @@ class MainWindow(QMainWindow):
     def setup_ui(self):
         central = QWidget()
         self.setCentralWidget(central)
-        main_layout = QVBoxLayout()
+        main_layout = QHBoxLayout()
         central.setLayout(main_layout)
 
         ## Creating image panels
-        viewer_layout = QHBoxLayout()
+        image_layout = QHBoxLayout()
 
         self.original_label = QLabel("Original Label")
         self.processed_label = QLabel("Processed Label")
@@ -32,9 +33,14 @@ class MainWindow(QMainWindow):
         self.original_label.setStyleSheet("""border : 2px solid gray;""")
         self.processed_label.setStyleSheet("""border : 2px solid gray;""")
 
-        viewer_layout.addWidget(self.original_label)
-        viewer_layout.addWidget(self.processed_label)
-        main_layout.addLayout(viewer_layout)
+        image_layout.addWidget(self.original_label)
+        image_layout.addWidget(self.processed_label)
+
+        ## Sidebar
+        self.sidebar = SideBar()
+        main_layout.addWidget(self.sidebar)
+
+        main_layout.addLayout(image_layout)
 
     def open_image(self):
         file, _ = QFileDialog.getOpenFileName(self,

@@ -1,0 +1,87 @@
+from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QToolBox, QPushButton
+
+class SideBar(QWidget):
+    def __init__(self):
+        super().__init__()
+
+        self.toolbox = QToolBox()
+        layout = QVBoxLayout()
+        layout.addWidget(self.toolbox)
+        self.setLayout(layout)
+
+        self.create_filters()
+        self.create_morphological()
+        self.create_segmentation()
+        self.create_transform()
+        self.create_yolo()
+
+    def create_filters(self):
+        filter = QWidget()
+        layout = QVBoxLayout()
+        self.gaussian = QPushButton("Gaussian")
+        self.laplacian = QPushButton("Laplacian")
+        self.canny = QPushButton("Canny")
+        self.median = QPushButton("Median")
+        self.sobel = QPushButton("Sobel")
+
+        layout.addWidget(self.gaussian)
+        layout.addWidget(self.laplacian)
+        layout.addWidget(self.canny)
+        layout.addWidget(self.median)
+        layout.addWidget(self.sobel)
+        layout.addStretch()
+        filter.setLayout(layout)
+        self.toolbox.addItem(filter, "Filters")
+
+    def create_morphological(self):
+        morph = QWidget()
+        layout = QVBoxLayout()
+        self.dilate = QPushButton("Dilate")
+        self.erode = QPushButton("Erode")
+        self.gradient = QPushButton("Gradient")
+        self.tophat = QPushButton("Tophat")
+        layout.addWidget(self.dilate)
+        layout.addWidget(self.erode)
+        layout.addWidget(self.gradient)
+        layout.addWidget(self.tophat)
+        layout.addStretch()
+        morph.setLayout(layout)
+        self.toolbox.addItem(morph, "Morphological Transformation")
+
+    def create_segmentation(self):
+        segmentation = QWidget()
+        layout = QVBoxLayout()
+        self.threshold = QPushButton("Threshold")
+        self.adaptive = QPushButton("Adaptive")
+        self.watershed = QPushButton("Watershed")
+        self.kmeans = QPushButton("K-Means")
+        layout.addWidget(self.threshold)
+        layout.addWidget(self.adaptive)
+        layout.addWidget(self.watershed)
+        layout.addWidget(self.kmeans)
+        layout.addStretch()
+        segmentation.setLayout(layout)
+        self.toolbox.addItem(segmentation, "Segmentation")
+
+    def create_transform(self):
+        transform = QWidget()
+        layout = QVBoxLayout()
+        self.rotate = QPushButton("Rotate")
+        self.resiz = QPushButton("Resize")
+        self.affine = QPushButton("Affine")
+        self.perspective = QPushButton("Perspective")
+        layout.addWidget(self.rotate)
+        layout.addWidget(self.resiz)
+        layout.addWidget(self.affine)
+        layout.addWidget(self.perspective)
+        layout.addStretch()
+        transform.setLayout(layout)
+        self.toolbox.addItem(transform, 'Transform')
+
+    def create_yolo(self):
+        page = QWidget()
+        layout = QVBoxLayout()
+        layout.addWidget(QPushButton("Detect Objects"))
+        layout.addStretch()
+        page.setLayout(layout)
+        self.toolbox.addItem(page, "YOLO")
