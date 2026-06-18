@@ -6,6 +6,8 @@ from ui.menubar import MenuBar
 from ui.toolbar import ToolBar
 from ui.sidebar import SideBar
 from core.filters import ImageFilters
+from core.morphology import Morphology
+from core.segmentation import Segmentation
 import cv2
 import numpy as np
 
@@ -44,6 +46,8 @@ class MainWindow(QMainWindow):
 
         ## Sidebar
         self.sidebar = SideBar()
+
+        ##Filters
         self.sidebar.gaussian.clicked.connect(lambda : self.apply_filters(self.sidebar.gaussian))
         self.sidebar.laplacian.clicked.connect(lambda : self.apply_filters(self.sidebar.laplacian))
         self.sidebar.canny.clicked.connect(lambda : self.apply_filters(self.sidebar.canny))
@@ -52,6 +56,17 @@ class MainWindow(QMainWindow):
         self.sidebar.blur.clicked.connect(lambda : self.apply_filters(self.sidebar.blur))
         self.sidebar.bilateral.clicked.connect(lambda : self.apply_filters(self.sidebar.bilateral))
         self.sidebar.grayscale.clicked.connect(lambda : self.apply_filters(self.sidebar.grayscale))
+
+        ##Morphology
+        self.sidebar.dilate.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.dilate))
+        self.sidebar.erode.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.erode))
+        self.sidebar.gradient.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.gradient))
+        self.sidebar.tophat.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.tophat))
+
+        ##Segmentation
+        self.sidebar.threshold.clicked.connect(lambda : self.apply_segment(self.sidebar.threshold))
+        self.sidebar.adaptive.clicked.connect(lambda : self.apply_segment(self.sidebar.adaptive))
+        self.sidebar.kmeans.clicked.connect(lambda : self.apply_segment(self.sidebar.kmeans))
 
         main_layout.addWidget(self.sidebar)
         main_layout.addLayout(image_layout)
@@ -146,5 +161,40 @@ class MainWindow(QMainWindow):
         
         elif name == "GrayScale":
             self.processed_image = ImageFilters.grayscale(self.original_image)
+
+        self.show_image(self.processed_image, self.processed_label)
+
+    def apply_morphlogy(self, operation):
+        if self.original_image is None:
+            return
+        
+        operation = operation.text()
+        if operation == 'Dilate':
+            self.processed_image = Morphology.dilate(self.original_image)
+        
+        elif operation == 'Erode':
+            self.processed_image = Morphology.erode(self.original_image)
+
+        elif operation == 'Gradient':
+            self.processed_image = Morphology.gradient(self.original_image)
+
+        elif operation == 'Tophat':
+            self.processed_image = Morphology.tophat(self.original_image)
+
+        self.show_image(self.processed_image, self.processed_label)
+
+    def apply_segment(self, operation):
+        if self.original_image is None:
+            return
+        
+        operation = operation.text()
+        if operation == "Threshold":
+            self.processed_image = Segmentation.threshold(self.original_image)
+
+        elif operation == "Adaptive":
+            self.processed_image = Segmentation.adaptive(self.original_image)
+
+        elif operation == "K-Means":
+            self.processed_image = Segmentation.kmeans(self.original_image)
 
         self.show_image(self.processed_image, self.processed_label)
