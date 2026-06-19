@@ -1,6 +1,6 @@
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QLineEdit, QWidget, QFileDialog)
-from PySide6.QtGui import QPixmap, QImage
+from PySide6.QtGui import QPixmap, QImage, QShortcut, QKeySequence
 from PySide6.QtCore import Qt
 from ui.menubar import MenuBar
 from ui.toolbar import ToolBar
@@ -8,6 +8,7 @@ from ui.sidebar import SideBar
 from core.filters import ImageFilters
 from core.morphology import Morphology
 from core.segmentation import Segmentation
+from core.transforms import ImageTransform
 import cv2
 import numpy as np
 
@@ -16,9 +17,22 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.original_image = None
         self.processed_image = None
+        self.angle = 0
+        self.scale = 1.0
+
+        self.left_shortcut = QShortcut(QKeySequence(Qt.Key_Left), self)
+        self.right_shortcut = QShortcut(QKeySequence(Qt.Key_Right), self)
+        self.up_shortcut = QShortcut(QKeySequence(Qt.Key_Up), self)
+        self.down_shortcut = QShortcut(QKeySequence(Qt.Key_Down), self)
+        self.left_shortcut.activated.connect(self.rotate_left)
+        self.right_shortcut.activated.connect(self.rotate_right)
+        self.up_shortcut.activated.connect(self.zoom_in)
+        self.down_shortcut.activated.connect(self.zoom_out)
+
         self.setWindowTitle('Image Processing Studio')
         self.resize(1400,800)
         self.setup_ui()
+        
         self.create_menu()
         self.create_toolbar()
 
@@ -67,6 +81,11 @@ class MainWindow(QMainWindow):
         self.sidebar.threshold.clicked.connect(lambda : self.apply_segment(self.sidebar.threshold))
         self.sidebar.adaptive.clicked.connect(lambda : self.apply_segment(self.sidebar.adaptive))
         self.sidebar.kmeans.clicked.connect(lambda : self.apply_segment(self.sidebar.kmeans))
+
+        ##Transform
+        self.sidebar.rotate.clicked.connect(lambda : self.apply_transform(self.sidebar.rotate))
+        self.sidebar.resiz.clicked.connect(lambda : self.apply_transform(self.sidebar.resiz))
+        self.sidebar.perspective.clicked.connect(lambda : self.apply_transform(self.sidebar.perspective))
 
         main_layout.addWidget(self.sidebar)
         main_layout.addLayout(image_layout)
@@ -126,9 +145,17 @@ class MainWindow(QMainWindow):
                             QImage.Format_RGB888)
             
         pixmap = QPixmap.fromImage(qImage)
-        pixmap = pixmap.scaled(label.size(),
+        if label == self.original_label:
+            pixmap = pixmap.scaled(label.size(),
                                Qt.KeepAspectRatio,
                                Qt.SmoothTransformation)
+        else:
+            pixmap = pixmap.scaled(
+            int(pixmap.width() * self.scale),
+            int(pixmap.height() * self.scale),
+            Qt.KeepAspectRatio,
+            Qt.SmoothTransformation
+            )
         
         label.setPixmap(pixmap)
 
@@ -197,4 +224,53 @@ class MainWindow(QMainWindow):
         elif operation == "K-Means":
             self.processed_image = Segmentation.kmeans(self.original_image)
 
+        self.show_image(self.processed_image, self.processed_label)
+
+    def apply_transform(self, operation):
+        if self.original_image is None:
+            return
+        
+        operation = operation.text()
+
+        if operation == "Rotate":
+            self.processed_image = ImageTransform.rotate(self.original_image)
+
+        elif operation == "Resize":
+            self.processed_image = ImageTransform.resize(self.original_image)
+
+        elif operation == "Perspective":
+            self.processed_image = ImageTransform.perspective(self.original_image)
+
+        self.show_image(self.processed_image, self.processed_label)
+
+    def rotate_left(self):
+        if self.original_image is None:
+            return
+        
+        self.angle -= 10
+        self.processed_image = ImageTransform.rotate(self.original_image, self.angle)
+        self.show_image(self.processed_image, self.processed_label)
+
+    def rotate_right(self):
+        if self.original_image is None:
+            return
+        self.angle += 10
+        self.processed_image = ImageTransform.rotate(self.original_image, self.angle)
+        self.show_image(self.processed_image, self.processed_label)
+
+    def zoom_in(self):
+        if self.original_image is None:
+            return
+        self.scale += 0.1
+        self.processed_image = ImageTransform.resize(self.original_image, self.scale)
+        self.show_image(self.processed_image, self.processed_label)
+
+    def zoom_out(self):
+        if self.original_image is None:
+            return
+        self.scale -= 0.1
+        if self.scale < 0.1:
+            self.scale = 0.1
+
+        self.processed_image = ImageTransform.resize(self.original_image, self.scale)
         self.show_image(self.processed_image, self.processed_label)
