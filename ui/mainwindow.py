@@ -1,7 +1,7 @@
 from PySide6.QtWidgets import (QMainWindow, QPushButton, QVBoxLayout, QHBoxLayout, QLabel,
                                QLineEdit, QWidget, QFileDialog)
 from PySide6.QtGui import QPixmap, QImage, QShortcut, QKeySequence
-from PySide6.QtCore import Qt
+from PySide6.QtCore import Qt, QTimer
 from ui.menubar import MenuBar
 from ui.toolbar import ToolBar
 from ui.sidebar import SideBar
@@ -17,8 +17,12 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.original_image = None
         self.processed_image = None
+        self.current_operation = None
         self.angle = 0
         self.scale = 1.0
+        self.cap = None
+        self.timer = QTimer()
+        self.timer.timeout.connect(self.update_video_frame)
 
         self.left_shortcut = QShortcut(QKeySequence(Qt.Key_Left), self)
         self.right_shortcut = QShortcut(QKeySequence(Qt.Key_Right), self)
@@ -62,30 +66,30 @@ class MainWindow(QMainWindow):
         self.sidebar = SideBar()
 
         ##Filters
-        self.sidebar.gaussian.clicked.connect(lambda : self.apply_filters(self.sidebar.gaussian))
-        self.sidebar.laplacian.clicked.connect(lambda : self.apply_filters(self.sidebar.laplacian))
-        self.sidebar.canny.clicked.connect(lambda : self.apply_filters(self.sidebar.canny))
-        self.sidebar.median.clicked.connect(lambda : self.apply_filters(self.sidebar.median))
-        self.sidebar.sobel.clicked.connect(lambda : self.apply_filters(self.sidebar.sobel))
-        self.sidebar.blur.clicked.connect(lambda : self.apply_filters(self.sidebar.blur))
-        self.sidebar.bilateral.clicked.connect(lambda : self.apply_filters(self.sidebar.bilateral))
-        self.sidebar.grayscale.clicked.connect(lambda : self.apply_filters(self.sidebar.grayscale))
+        self.sidebar.gaussian.clicked.connect(lambda : self.set_operation("Gaussian"))
+        self.sidebar.laplacian.clicked.connect(lambda : self.set_operation("Laplacian"))
+        self.sidebar.canny.clicked.connect(lambda : self.set_operation("Canny"))
+        self.sidebar.median.clicked.connect(lambda : self.set_operation("Median"))
+        self.sidebar.sobel.clicked.connect(lambda : self.set_operation("Sobel"))
+        self.sidebar.blur.clicked.connect(lambda : self.set_operation("Blur"))
+        self.sidebar.bilateral.clicked.connect(lambda : self.set_operation("Bilateral"))
+        self.sidebar.grayscale.clicked.connect(lambda : self.set_operation("GrayScale"))
 
         ##Morphology
-        self.sidebar.dilate.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.dilate))
-        self.sidebar.erode.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.erode))
-        self.sidebar.gradient.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.gradient))
-        self.sidebar.tophat.clicked.connect(lambda : self.apply_morphlogy(self.sidebar.tophat))
+        self.sidebar.dilate.clicked.connect(lambda : self.set_operation("Dilate"))
+        self.sidebar.erode.clicked.connect(lambda : self.set_operation("Erode"))
+        self.sidebar.gradient.clicked.connect(lambda : self.set_operation("Gradient"))
+        self.sidebar.tophat.clicked.connect(lambda : self.set_operation("Tophat"))
 
         ##Segmentation
-        self.sidebar.threshold.clicked.connect(lambda : self.apply_segment(self.sidebar.threshold))
-        self.sidebar.adaptive.clicked.connect(lambda : self.apply_segment(self.sidebar.adaptive))
-        self.sidebar.kmeans.clicked.connect(lambda : self.apply_segment(self.sidebar.kmeans))
+        self.sidebar.threshold.clicked.connect(lambda : self.set_operation("Threshold"))
+        self.sidebar.adaptive.clicked.connect(lambda : self.set_operation("Adaptive"))
+        self.sidebar.kmeans.clicked.connect(lambda : self.set_operation("K-Means"))
 
         ##Transform
-        self.sidebar.rotate.clicked.connect(lambda : self.apply_transform(self.sidebar.rotate))
-        self.sidebar.resiz.clicked.connect(lambda : self.apply_transform(self.sidebar.resiz))
-        self.sidebar.perspective.clicked.connect(lambda : self.apply_transform(self.sidebar.perspective))
+        self.sidebar.rotate.clicked.connect(lambda : self.set_operation("Rotate"))
+        self.sidebar.resiz.clicked.connect(lambda : self.set_operation("Resize"))
+        self.sidebar.perspective.clicked.connect(lambda : self.set_operation("Perspective"))
 
         main_layout.addWidget(self.sidebar)
         main_layout.addLayout(image_layout)
@@ -107,10 +111,28 @@ class MainWindow(QMainWindow):
         file, _ = QFileDialog.getOpenFileName(self,
                                               "Open Image",
                                               "",
-                                              "Images (*.mp4, *.avi, *.mov)")
+                                              "Images (*.mp4 *.avi *.mov)")
         
         if (file):
-            print(file)
+            self.cap = cv2.VideoCapture(file)
+            self.timer.start(30)
+
+    def update_video_frame(self):
+        if self.cap is None:
+            return
+        
+        ret, frame = self.cap.read()
+        if not ret:
+            self.cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            ret, frame = self.cap.read()
+
+            if not ret:
+                return
+        
+        self.original_image = frame
+        self.show_image(self.original_image, self.original_label)
+        processed = self.process_frame(frame)
+        self.show_image(processed, self.processed_label)
 
     
     def create_menu(self):
@@ -274,3 +296,76 @@ class MainWindow(QMainWindow):
 
         self.processed_image = ImageTransform.resize(self.original_image, self.scale)
         self.show_image(self.processed_image, self.processed_label)
+    
+    def set_operation(self, operation):
+        self.current_operation = operation
+
+        if self.original_image is None:
+            result = self.process_frame(self.original_image)
+            self.processed_image = result
+
+            self.show_image(self.processed_image, self.processed_label)
+    
+    def process_frame(self, frame):
+        if self.current_operation is None:
+            return frame
+        
+        ## Filters
+        if self.current_operation == "Gaussian":
+            return ImageFilters.gaussian(frame)
+        
+        elif self.current_operation == "Laplacian":
+            return ImageFilters.laplacian(frame)
+        
+        elif self.current_operation == "Canny":
+            return ImageFilters.canny(frame)
+        
+        elif self.current_operation == "Median":
+            return ImageFilters.median(frame)
+        
+        elif self.current_operation == "Sobel":
+            return ImageFilters.sobel(frame)
+        
+        elif self.current_operation == "Blur":
+            return ImageFilters.blur(frame)
+        
+        elif self.current_operation == "Bilateral":
+            return ImageFilters.bilateral(frame)
+        
+        elif self.current_operation == "GrayScale":
+            return ImageFilters.grayscale(frame)
+        
+        ## Morphology
+        elif self.current_operation == "Dilate":
+            return Morphology.dilate(frame)
+        
+        elif self.current_operation == "Erode":
+            return Morphology.erode(frame)
+        
+        elif self.current_operation == "Gradient":
+            return Morphology.gradient(frame)
+        
+        elif self.current_operation == "Tophat":
+            return Morphology.tophat(frame)
+        
+        ## Segmentation
+        elif self.current_operation == "Threshold":
+            return Segmentation.threshold(frame)
+        
+        elif self.current_operation == "Adaptive":
+            return Segmentation.adaptive(frame)
+        
+        elif self.current_operation == "K-Means":
+            return Segmentation.kmeans(frame)
+        
+        ## Transform
+        elif self.current_operation == "Rotate":
+            return ImageTransform.rotate(frame)
+        
+        elif self.current_operation == "Resize":
+            return ImageTransform.resize(frame)
+        
+        elif self.current_operation == "Perspective":
+            return ImageTransform.perspective(frame)
+        
+        return frame
