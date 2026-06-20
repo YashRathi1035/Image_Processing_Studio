@@ -9,6 +9,8 @@ from core.filters import ImageFilters
 from core.morphology import Morphology
 from core.segmentation import Segmentation
 from core.transforms import ImageTransform
+from core.yolo_detector import YoloDetector
+from core.ball_speed import BallSpeedTrackbar
 import cv2
 import numpy as np
 
@@ -23,6 +25,7 @@ class MainWindow(QMainWindow):
         self.cap = None
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_video_frame)
+        self.ballTrackbar = BallSpeedTrackbar()
 
         self.left_shortcut = QShortcut(QKeySequence(Qt.Key_Left), self)
         self.right_shortcut = QShortcut(QKeySequence(Qt.Key_Right), self)
@@ -91,6 +94,10 @@ class MainWindow(QMainWindow):
         self.sidebar.resiz.clicked.connect(lambda : self.set_operation("Resize"))
         self.sidebar.perspective.clicked.connect(lambda : self.set_operation("Perspective"))
 
+        ## YOLO
+        self.sidebar.yolo.clicked.connect(lambda: self.set_operation("Detect Objects"))
+        self.sidebar.ball_speed.clicked.connect(lambda : self.set_operation("Ball Speed"))
+
         main_layout.addWidget(self.sidebar)
         main_layout.addLayout(image_layout)
 
@@ -134,7 +141,6 @@ class MainWindow(QMainWindow):
         processed = self.process_frame(frame)
         self.show_image(processed, self.processed_label)
 
-    
     def create_menu(self):
         self.menu = MenuBar(self)
         self.setMenuBar(self.menu)
@@ -300,7 +306,7 @@ class MainWindow(QMainWindow):
     def set_operation(self, operation):
         self.current_operation = operation
 
-        if self.original_image is None:
+        if self.original_image is not None:
             result = self.process_frame(self.original_image)
             self.processed_image = result
 
@@ -368,4 +374,19 @@ class MainWindow(QMainWindow):
         elif self.current_operation == "Perspective":
             return ImageTransform.perspective(frame)
         
+        elif self.current_operation == "Detect Objects":
+            return YoloDetector.detect(frame)
+        
+        elif self.current_operation == "Ball Speed":
+
+            fps = 30
+            if self.cap is not None:
+                fps = self.cap.get(
+                    cv2.CAP_PROP_FPS
+                )
+            return self.ballTrackbar.process(
+                frame,
+                fps
+            )
+
         return frame

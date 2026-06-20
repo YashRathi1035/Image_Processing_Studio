@@ -85,7 +85,10 @@ class SideBar(QWidget):
     def create_yolo(self):
         page = QWidget()
         layout = QVBoxLayout()
-        layout.addWidget(QPushButton("Detect Objects"))
+        self.yolo = QPushButton("Detect Objects")
+        self.ball_speed = QPushButton("Ball Speed")
+        layout.addWidget(self.yolo)
+        layout.addWidget(self.ball_speed)
         layout.addStretch()
         page.setLayout(layout)
         self.toolbox.addItem(page, "YOLO")
